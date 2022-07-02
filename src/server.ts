@@ -1,24 +1,29 @@
 import * as express from 'express';
-import * as cors from 'cors';
-import * as morgan from 'morgan';
-import * as bodyParser from 'body-parser';
- 
-import api from './api';
-
-import * as expressListRoutes from 'express-list-routes';
+import * as path from 'path';
 const app = express();
 
-app.use(cors());
-app.use(
-  morgan(':method :url :status :res[content-length] - :response-time ms', {
-    stream: { write: (msg) => console.log(msg) },
-  }),
-);
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(api);
+import * as http from 'http';
+const server = http.createServer(app);
+import { Server } from 'socket.io';
+import RedisCli from './redis';
+const redis = RedisCli.getInstance();
+const io = new Server(server);
 
-const port = process.env.PORT || 9000;
-app.listen(port, () => {
-  console.log(`Aplicação - Ativa :D | ${port}`);
-  expressListRoutes(app, { prefix: '' });
+app.get('/', (_req, res) => {
+  const pathResolved = path.resolve(__dirname + '/../public/index.html');
+  return res.sendFile(pathResolved);
 });
+
+io.on('connection', async (socket) => {
+  const candidates = await redis.getJSON('candidates');
+  const votes = await redis.getJSON('votes');
+  socket.emit('candidates', candidates);
+  socket.emit('votes', votes);
+});
+
+const port = process.env.PORT || 9001;
+server.listen(port, () => {
+  console.log(`Aplicação - Ativa :D | ${port}`);
+});
+
+export const socketIo = io;

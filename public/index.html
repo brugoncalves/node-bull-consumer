@@ -1,0 +1,128 @@
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"
+  integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous"></script>
+<script>
+  const socket = io('ws://localhost:9001');
+  let allCandidates = [];
+  let allVotes = [];
+
+  function createElementFromHTML(htmlString) {
+    const div = document.createElement('div');
+    div.innerHTML = htmlString.replace(/\n/g, '').trim();
+    return div.firstChild;
+  }
+
+  function adcElemento({ name, partyNumber, photo, votes }) {
+    const cardString = `
+    <div class="card">
+      <img src="${photo}" alt="Avatar" style="width:100%">
+      <div class="container">
+        <h4>Candidato: <b>${name}</b></h4>
+        <p>Partido: ${partyNumber}</p>
+        <p>Votos: ${votes}</p>
+      </div>
+    </div>`;
+    return cardString;
+  }
+
+  function updateVotes() {
+    const candidatesHtml = allCandidates.map(x => {
+      const votes = allVotes[x.partyNumber] || 0;
+      return adcElemento({ votes, ...x });
+    });
+    const candidatesString = candidatesHtml.join('');
+    if (candidatesString) {
+      document.getElementById('result').innerHTML = candidatesString;
+    }
+  }
+
+  socket.on('votes', function (votes) {
+    allVotes = votes || [];
+    updateVotes();
+  });
+
+  socket.on('candidates', function (candidates) {
+    allCandidates = candidates || [];
+    updateVotes();
+  });
+
+</script>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Simulação de votação 2022</title>
+
+</head>
+
+<body>
+  <marquee>
+    <h2>Apuração dos Votos 2022</h2>
+  </marquee>
+  <div id="result">
+    <p class="loading">Aguardando votação...</p>
+  </div>
+</body>
+
+</html>
+<style>
+  body {
+    margin: 0;
+    padding-bottom: 3rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: blueviolet;
+  }
+
+  #result {
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+  }
+
+  .card {
+    /* Add shadows to create the "card" effect */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.3s;
+    margin: 5px;
+    background: white;
+  }
+
+  /* On mouse-over, add a deeper shadow */
+  .card:hover {
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* Add some padding inside the card container */
+  .container {
+    padding: 2px 16px;
+  }
+
+  h2 {
+    color: white
+  }
+
+  img {
+    max-height: 70%;
+    object-fit: cover;
+  }
+
+  @keyframes changewidth {
+    from {
+      font-size: 100px;
+    }
+
+    to {
+      font-size: 200px;
+      color: gold;
+    }
+  }
+
+  .loading {
+    animation-duration: 5.0s;
+    animation-name: changewidth;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    color: white;
+    margin: 10 20% auto;
+    display: ruby;
+  }
+</style>
